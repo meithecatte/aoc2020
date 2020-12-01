@@ -1,4 +1,4 @@
-s" input" r/o open-file throw Value fd-in
+s" input" r/o open-file throw value fd-in
 
 10 constant buf-len
 create line-buffer buf-len allot
@@ -29,18 +29,33 @@ create numbers read-nums constant #numbers
     then
   loop drop false ;
 
-: complement 2020 swap - ;
+2020 value target
 
-: find-pair ( -- a b )
+: complement target swap - ;
+
+: find-pair ( -- 0 | a b -1 )
   #numbers 0 ?do
     numbers i cells + @
     dup complement dup num-exists if
-      unloop exit
+      true unloop exit
     then
     2drop
   loop
+  false ;
+
+find-pair invert throw * .
+
+: find-triple ( -- a b c )
+  #numbers 0 ?do
+    numbers i cells + @
+    2020 over - to target
+    find-pair if
+      unloop exit
+    then
+    drop
+  loop
   abort" not found" ;
 
-find-pair * .
+find-triple * * .
 
 bye
