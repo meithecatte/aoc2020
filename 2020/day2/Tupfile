@@ -1,0 +1,5 @@
+.gitignore
+: font.png |> rgbgfx -d 1 font.png -o font.1bpp |> font.1bpp
+: main.asm font.1bpp |> rgbasm main.asm -o main.o |> main.o
+: main.o |> rgblink -t main.o -o solve.gb -n solve.sym && \
+            rgbfix -vj solve.gb |> solve.gb solve.sym
