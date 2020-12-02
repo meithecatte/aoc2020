@@ -16,8 +16,10 @@ Start:
     jr c, .waitLCD
     xor a
     ldh [rLCDC], a
-    ld [wValid], a
-    ld [wValid + 1], a
+    ld [wDay1], a
+    ld [wDay1 + 1], a
+    ld [wDay2], a
+    ld [wDay2 + 1], a
 
     ld hl, $9100
     ld de, Font
@@ -39,40 +41,79 @@ Start:
     ld d, a ; min
     call ReadNumber
     ld e, a ; max
+    push de
 
     inc hl ; skip space
     ld a, [hli] ; letter
     inc hl ; skip colon
+    push hl
     inc hl ; skip space
+    push af
 
     ld b, a
     call CountOccurences
 
     ld a, c ; count < min
     cp d
-    jr c, .processPasswords
+    jr c, .part2
 
     ld a, e
     cp c ; max < count
-    jr c, .processPasswords
+    jr c, .part2
 
-    ld de, wValid
-    ld a, [de]
-    add 1
-    daa
-    ld [de], a
-    jr nz, .processPasswords
-    inc e
-    ld a, [de]
-    add 1
-    daa
-    ld [de], a
+    ld de, wDay1
+    call IncrementCounter
+
+.part2:
+    pop bc ; B = target letter
+    pop hl
+    pop de
+    push hl
+
+    ld a, l
+    add e
+    ld l, a
+    adc h
+    sub l
+    ld h, a
+    ld a, [hl]
+    cp b
+    ld c, 0
+    jr nz, .checkedOnePosition
+    ld c, 1
+.checkedOnePosition
+    pop hl
+
+    ld a, l
+    add d
+    ld l, a
+    adc h
+    sub l
+    ld h, a
+    ld a, [hl]
+    cp b
+    ld a, 0
+    jr nz, .checkedBothPositions
+    inc a
+.checkedBothPositions
+    ld de, wDay2
+    xor c
+    call nz, IncrementCounter
     jr .processPasswords
 
 .done:
 
     ld hl, $9800
-    ld de, wValid + 1
+    ld de, wDay1 + 1
+
+    ld a, [de]
+    call PrintBCD
+    dec de
+    ld a, [de]
+    call PrintBCD
+
+    ld l, $20
+    ld de, wDay2 + 1
 
     ld a, [de]
     call PrintBCD
@@ -86,7 +127,8 @@ Start:
     halt
 
 SECTION "Variables", WRAM0, ALIGN[1]
-wValid: dw
+wDay1: dw
+wDay2: dw
 
 SECTION "Processing", ROM0
 
@@ -104,6 +146,22 @@ CountOccurences:
     jr nz, .loop
     inc c
     jr .loop
+
+; Increment the 16-bit BCD counter at DE
+; Clobbers A
+; Assumes the counter doesn't cross a page boundary
+IncrementCounter:
+    ld a, [de]
+    add 1
+    daa
+    ld [de], a
+    ret nz
+    inc e
+    ld a, [de]
+    add 1
+    daa
+    ld [de], a
+    ret
 
 SECTION "Output", ROM0
 PrintBCD:
